@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quetex — Live Signal Dashboard</title>
+<style>
+  :root {
+    --bg:      #0d1117;
+    --bg2:     #161b22;
+    --bg3:     #21262d;
+    --border:  #30363d;
+    --text:    #e6edf3;
+    --muted:   #8b949e;
+    --green:   #3fb950;
+    --red:     #f85149;
+    --yellow:  #d29922;
+    --blue:    #58a6ff;
+    --purple:  #bc8cff;
+    --orange:  #ffa657;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text);
+         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         min-height: 100vh; }
+
+  /* ── Header ── */
+  .header { background: var(--bg2); border-bottom: 1px solid var(--border);
+             padding: 12px 20px; display: flex; align-items: center;
+             justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .logo { font-size: 20px; font-weight: 700; color: var(--blue);
+          letter-spacing: 2px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%;
+                background: var(--green); display: inline-block;
+                animation: pulse 2s infinite; margin-right: 6px; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .status-text { font-size: 13px; color: var(--muted); }
+
+  /* ── Layout ── */
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+          gap: 16px; }
+
+  /* ── Control Bar ── */
+  .controls { background: var(--bg2); border: 1px solid var(--border);
+              border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;
+              display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer;
+         font-size: 14px; font-weight: 600; transition: all .2s; }
+  .btn-primary { background: var(--blue); color: #000; }
+  .btn-primary:hover { background: #79c0ff; }
+  .btn-success { background: var(--green); color: #000; }
+  .btn-success:hover { filter: brightness(1.15); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-danger:hover { filter: brightness(1.15); }
+  .btn-outline { background: transparent; border: 1px solid var(--border);
+                 color: var(--text); }
+  .btn-outline:hover { background: var(--bg3); }
+  .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px;
+           font-weight: 600; }
+  .badge-green { background: rgba(63,185,80,.2); color: var(--green); }
+  .badge-red { background: rgba(248,81,73,.2); color: var(--red); }
+  .badge-yellow { background: rgba(210,153,34,.2); color: var(--yellow); }
+
+  /* ── Stats Bar ── */
+  .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+               gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border);
+               border-radius: 10px; padding: 16px; text-align: center; }
+  .stat-value { font-size: 28px; font-weight: 700; }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* ── Signal Card ── */
+  .signal-card { background: var(--bg2); border: 1px solid var(--border);
+                 border-radius: 12px; overflow: hidden; transition: transform .2s;
+                 position: relative; }
+  .signal-card:hover { transform: translateY(-2px); }
+  .signal-card.buy  { border-top: 3px solid var(--green); }
+  .signal-card.sell { border-top: 3px solid var(--red); }
+  .card-header { padding: 14px 16px 10px;
+                 display: flex; justify-content: space-between; align-items: center; }
+  .asset-name { font-size: 16px; font-weight: 700; }
+  .direction-badge { font-size: 13px; font-weight: 700; padding: 4px 12px;
+                     border-radius: 20px; }
+  .buy .direction-badge  { background: rgba(63,185,80,.2); color: var(--green); }
+  .sell .direction-badge { background: rgba(248,81,73,.2); color: var(--red); }
+  .card-body { padding: 0 16px 14px; }
+  .card-row { display: flex; justify-content: space-between; margin: 5px 0;
+              font-size: 13px; }
+  .card-label { color: var(--muted); }
+  .card-val { font-weight: 600; }
+  .call-put { font-size: 20px; font-weight: 800; }
+  .buy  .call-put { color: var(--green); }
+  .sell .call-put { color: var(--red); }
+
+  /* ── Confidence Bar ── */
+  .conf-section { padding: 10px 16px; background: var(--bg3); }
+  .conf-label { display: flex; justify-content: space-between;
+                font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .conf-val { font-size: 18px; font-weight: 800; }
+  .buy  .conf-val { color: var(--green); }
+  .sell .conf-val { color: var(--red); }
+  .bar-track { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width .8s ease; }
+  .buy  .bar-fill { background: linear-gradient(90deg, #238636, #3fb950); }
+  .sell .bar-fill { background: linear-gradient(90deg, #da3633, #f85149); }
+
+  /* ── VS Bar ── */
+  .vs-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden;
+            margin: 8px 16px; }
+  .vs-buy  { background: var(--green); }
+  .vs-sell { background: var(--red); }
+
+  /* ── Indicators ── */
+  .indicators { padding: 10px 16px; max-height: 200px; overflow-y: auto; }
+  .ind-row { display: flex; align-items: center; gap: 8px;
+             font-size: 12px; margin: 4px 0; }
+  .ind-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .ind-dot.buy  { background: var(--green); }
+  .ind-dot.sell { background: var(--red); }
+  .ind-dot.neutral { background: var(--muted); }
+
+  /* ── Pattern & MTF ── */
+  .card-footer { padding: 10px 16px; background: var(--bg);
+                 border-top: 1px solid var(--border);
+                 display: flex; justify-content: space-between;
+                 font-size: 11px; color: var(--muted); }
+  .mtf-note { font-size: 11px; }
+
+  /* ── Result buttons ── */
+  .result-btns { display: flex; gap: 6px; padding: 10px 16px; }
+  .btn-win  { flex:1; padding:6px; background:rgba(63,185,80,.15);
+              color:var(--green); border:1px solid var(--green);
+              border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; }
+  .btn-loss { flex:1; padding:6px; background:rgba(248,81,73,.15);
+              color:var(--red); border:1px solid var(--red);
+              border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; }
+  .btn-win:hover  { background:rgba(63,185,80,.3); }
+  .btn-loss:hover { background:rgba(248,81,73,.3); }
+
+  /* ── No signal card ── */
+  .no-signal { background: var(--bg2); border: 1px solid var(--border);
+               border-radius: 12px; padding: 40px; text-align: center;
+               color: var(--muted); grid-column: 1/-1; }
+  .no-signal-icon { font-size: 48px; margin-bottom: 12px; }
+
+  /* ── History Table ── */
+  .section-title { font-size: 16px; font-weight: 700; margin: 24px 0 12px;
+                   color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .table-wrap { background: var(--bg2); border: 1px solid var(--border);
+                border-radius: 10px; overflow: hidden; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: var(--bg3); }
+  th { padding: 10px 14px; text-align: left; color: var(--muted);
+       font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  td { padding: 10px 14px; border-top: 1px solid var(--border); }
+  tr:hover td { background: var(--bg3); }
+
+  /* ── Countdown ── */
+  .countdown { font-size: 13px; color: var(--blue); margin-left: auto; }
+
+  /* ── Toast ── */
+  #toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg3);
+           border: 1px solid var(--border); border-radius: 10px;
+           padding: 14px 20px; font-size: 14px; z-index: 999;
+           opacity: 0; transition: opacity .3s; pointer-events: none;
+           max-width: 320px; }
+  #toast.show { opacity: 1; }
+
+  /* ── Scanning overlay ── */
+  #scanning { display: none; position: fixed; top: 50%; left: 50%;
+              transform: translate(-50%, -50%); background: var(--bg2);
+              border: 1px solid var(--border); border-radius: 12px;
+              padding: 32px 48px; text-align: center; z-index: 999; }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border);
+             border-top-color: var(--blue); border-radius: 50%;
+             animation: spin 1s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .stats-bar { grid-template-columns: repeat(3, 1fr); }
+    .controls { flex-direction: column; align-items: stretch; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">⚡ QUETEX</div>
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div>
+      <span class="status-dot" id="statusDot"></span>
+      <span class="status-text" id="statusText">Connecting...</span>
+    </div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+</div>
+
+<!-- Main Container -->
+<div class="container">
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn btn-primary" onclick="triggerScan()">🔍 Scan All Now</button>
+    <button class="btn btn-outline" onclick="toggleAuto()" id="autoBtn">⏸ Pause Auto</button>
+    <select id="assetSelect" style="padding:8px 12px;background:var(--bg3);color:var(--text);
+            border:1px solid var(--border);border-radius:6px;font-size:14px;">
+      <option value="">— Quick Scan: Select Asset —</option>
+      {% for a in assets %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-outline" onclick="scanAsset()">▶ Scan Selected</button>
+    <div style="margin-left:auto;font-size:12px;color:var(--muted)">
+      Min Confidence: <strong style="color:var(--blue)">{{ min_conf }}%</strong>
+      &nbsp;|&nbsp;Auto: <strong style="color:var(--blue)">{{ interval }}min</strong>
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--blue)" id="stat-today">{{ stats.today }}</div>
+      <div class="stat-label">Today's Signals</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--green)" id="stat-wins">{{ stats.wins }}</div>
+      <div class="stat-label">Wins ✅</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--red)" id="stat-losses">{{ stats.losses }}</div>
+      <div class="stat-label">Losses ❌</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--purple)" id="stat-wr">{{ stats.win_rate }}%</div>
+      <div class="stat-label">Win Rate 🏆</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--orange)" id="stat-total">{{ stats.total }}</div>
+      <div class="stat-label">Total Signals</div>
+    </div>
+  </div>
+
+  <!-- Signal Grid -->
+  <div class="section-title">📡 Live Signals</div>
+  <div class="grid" id="signalGrid">
+    <div class="no-signal">
+      <div class="no-signal-icon">📡</div>
+      <div>Waiting for scan results...</div>
+      <div style="margin-top:8px;font-size:13px">Click "Scan All Now" or wait for auto-scan</div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="section-title">📜 Signal History</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Asset</th><th>Direction</th>
+          <th>Confidence</th><th>Expiry</th><th>Pattern</th>
+          <th>Result</th><th>Time</th>
+        </tr>
+      </thead>
+      <tbody id="historyBody">
+        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">
+          Loading history...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /container -->
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Scanning Overlay -->
+<div id="scanning">
+  <div class="spinner"></div>
+  <div>Scanning markets...</div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────
+let ws = null;
+let autoOn = true;
+let countdownSec = {{ interval * 60 }};
+let countdownTimer = null;
+let wsRetryDelay = 2000;
+
+// ── WebSocket ──────────────────────────────────────────────
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+  ws.onopen = () => {
+    setStatus(true);
+    wsRetryDelay = 2000;
+    // Ping every 30s
+    setInterval(() => { if (ws.readyState === 1) ws.send('ping'); }, 30000);
+  };
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'scan_start') {
+      document.getElementById('scanning').style.display = 'block';
+    }
+    if (msg.type === 'signals') {
+      document.getElementById('scanning').style.display = 'none';
+      renderSignals(msg.signals);
+      resetCountdown();
+      refreshStats();
+    }
+  };
+
+  ws.onclose = () => {
+    setStatus(false);
+    setTimeout(connectWS, wsRetryDelay);
+    wsRetryDelay = Math.min(wsRetryDelay * 2, 30000);
+  };
+}
+
+function setStatus(ok) {
+  document.getElementById('statusDot').style.background = ok ? 'var(--green)' : 'var(--red)';
+  document.getElementById('statusText').textContent = ok ? 'Live — Auto-scan active' : 'Reconnecting...';
+}
+
+// ── Countdown ──────────────────────────────────────────────
+function resetCountdown() { countdownSec = {{ interval * 60 }}; }
+
+function startCountdown() {
+  countdownTimer = setInterval(() => {
+    countdownSec--;
+    const m = Math.floor(countdownSec / 60);
+    const s = countdownSec % 60;
+    document.getElementById('countdown').textContent =
+      `Next scan in ${m}:${String(s).padStart(2,'0')}`;
+    if (countdownSec <= 0) countdownSec = {{ interval * 60 }};
+  }, 1000);
+}
+
+// ── Scan ───────────────────────────────────────────────────
+async function triggerScan(asset = '') {
+  document.getElementById('scanning').style.display = 'block';
+  try {
+    const url = asset ? `/api/scan?asset=${encodeURIComponent(asset)}` : '/api/scan';
+    const r = await fetch(url, { method: 'GET' });
+    const d = await r.json();
+    renderSignals(d.signals || []);
+    resetCountdown();
+    refreshStats();
+    toast(`✅ ${d.count} signal(s) found`, 'green');
+  } catch(e) {
+    toast('❌ Scan failed: ' + e.message, 'red');
+  } finally {
+    document.getElementById('scanning').style.display = 'none';
+  }
+}
+
+function scanAsset() {
+  const v = document.getElementById('assetSelect').value;
+  if (!v) { toast('⚠️ Select an asset first', 'yellow'); return; }
+  triggerScan(v);
+}
+
+async function toggleAuto() {
+  autoOn = !autoOn;
+  await fetch(`/api/auto/${autoOn ? 'on' : 'off'}`, { method: 'POST' });
+  document.getElementById('autoBtn').textContent = autoOn ? '⏸ Pause Auto' : '▶ Resume Auto';
+  toast(autoOn ? '✅ Auto-scan ON' : '⏸ Auto-scan paused');
+}
+
+// ── Render Signals ─────────────────────────────────────────
+function renderSignals(signals) {
+  const grid = document.getElementById('signalGrid');
+  if (!signals || signals.length === 0) {
+    grid.innerHTML = `
+      <div class="no-signal">
+        <div class="no-signal-icon">⚪</div>
+        <div>No strong signals found at this time.</div>
+        <div style="margin-top:8px;font-size:13px">Markets may be in consolidation. Try again shortly.</div>
+      </div>`;
+    return;
+  }
+  grid.innerHTML = signals.map(s => buildCard(s)).join('');
+}
+
+function buildCard(s) {
+  const isBuy   = s.direction === 'BUY';
+  const cls     = isBuy ? 'buy' : 'sell';
+  const icon    = isBuy ? '🟢' : '🔴';
+  const cpLabel = isBuy ? 'CALL ↑' : 'PUT ↓';
+  const confInt = Math.round(s.confidence);
+  const confColor = confInt >= 90 ? 'var(--green)' : confInt >= 80 ? 'var(--orange)' : 'var(--yellow)';
+  const bp = s.buy_pct || 0; const sp = s.sell_pct || 0;
+  const total = (bp + sp) || 1;
+
+  const indHTML = (s.confirming || []).map(i =>
+    `<div class="ind-row"><div class="ind-dot ${cls}"></div><span>${i}</span></div>`
+  ).join('') + (s.opposing || []).map(i =>
+    `<div class="ind-row"><div class="ind-dot ${isBuy ? 'sell' : 'buy'}"></div>
+     <span style="color:var(--muted)">${i}</span></div>`
+  ).join('');
+
+  const sid = s.id || '';
+
+  return `
+  <div class="signal-card ${cls}" id="card_${sid}">
+    <div class="card-header">
+      <div>
+        <div class="asset-name">${icon} ${s.asset}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${s.timeframe} · ${s.expiry}</div>
+      </div>
+      <div class="direction-badge">${s.direction}</div>
+    </div>
+    <div class="card-body">
+      <div class="call-put">${cpLabel}</div>
+      <div class="card-row" style="margin-top:8px">
+        <span class="card-label">Entry Price</span>
+        <span class="card-val">${(s.price||0).toFixed(5)}</span>
+      </div>
+      <div class="card-row">
+        <span class="card-label">Pattern</span>
+        <span class="card-val">${s.pattern || '—'}</span>
+      </div>
+      <div class="card-row">
+        <span class="card-label">ADX</span>
+        <span class="card-val">${(s.adx||0).toFixed(1)} ${s.adx>=35?'🔥':s.adx>=25?'⚡':'〰️'}</span>
+      </div>
+      <div class="card-row">
+        <span class="card-label">MTF</span>
+        <span class="card-val" style="font-size:11px">${s.mtf_note || '—'}</span>
+      </div>
+    </div>
+
+    <div class="conf-section">
+      <div class="conf-label">
+        <span>Confidence</span>
+        <span class="conf-val" style="color:${confColor}">${confInt}%</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${confInt}%"></div>
+      </div>
+    </div>
+
+    <div class="vs-bar">
+      <div class="vs-buy" style="width:${(bp/total*100).toFixed(1)}%"
+           title="BUY ${bp.toFixed(1)}%"></div>
+      <div class="vs-sell" style="width:${(sp/total*100).toFixed(1)}%"
+           title="SELL ${sp.toFixed(1)}%"></div>
+    </div>
+
+    <div class="indicators">${indHTML || '<div style="color:var(--muted);font-size:12px">Analyzing...</div>'}</div>
+
+    <div class="card-footer">
+      <span>${s.timestamp || ''} UTC</span>
+      <span class="mtf-note">#${sid}</span>
+    </div>
+
+    ${sid ? `
+    <div class="result-btns">
+      <button class="btn-win" onclick="markResult(${sid},'WIN',this)">✅ WIN</button>
+      <button class="btn-loss" onclick="markResult(${sid},'LOSS',this)">❌ LOSS</button>
+    </div>` : ''}
+  </div>`;
+}
+
+// ── Mark Result ────────────────────────────────────────────
+async function markResult(id, result, btn) {
+  try {
+    await fetch(`/api/result/${id}/${result}`, { method: 'POST' });
+    const card = document.getElementById(`card_${id}`);
+    if (card) {
+      const footer = card.querySelector('.result-btns');
+      if (footer) footer.innerHTML =
+        `<div style="text-align:center;padding:8px;font-size:13px;color:${result==='WIN'?'var(--green)':'var(--red)'}">
+          ${result==='WIN'?'✅ WIN':'❌ LOSS'} — Recorded</div>`;
+    }
+    toast(`${result==='WIN'?'✅':'❌'} Signal #${id} marked as ${result}`);
+    refreshStats();
+    loadHistory();
+  } catch(e) { toast('Error: ' + e.message, 'red'); }
+}
+
+// ── Stats + History ────────────────────────────────────────
+async function refreshStats() {
+  try {
+    const r = await fetch('/api/stats');
+    const d = await r.json();
+    const st = d.stats;
+    document.getElementById('stat-today').textContent   = st.today;
+    document.getElementById('stat-wins').textContent    = st.wins;
+    document.getElementById('stat-losses').textContent  = st.losses;
+    document.getElementById('stat-wr').textContent      = st.win_rate + '%';
+    document.getElementById('stat-total').textContent   = st.total;
+  } catch(e) {}
+}
+
+async function loadHistory() {
+  try {
+    const r = await fetch('/api/history?limit=15');
+    const d = await r.json();
+    const tbody = document.getElementById('historyBody');
+    if (!d.signals || d.signals.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No history yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = d.signals.map(s => {
+      const isBuy = s.direction === 'BUY';
+      const resC  = s.result==='WIN'?'var(--green)':s.result==='LOSS'?'var(--red)':'var(--muted)';
+      const resE  = s.result==='WIN'?'✅':s.result==='LOSS'?'❌':'⏳';
+      return `<tr>
+        <td style="color:var(--muted)">#${s.id}</td>
+        <td><strong>${s.asset}</strong></td>
+        <td style="color:${isBuy?'var(--green)':'var(--red)'};font-weight:700">
+          ${isBuy?'🟢 CALL ↑':'🔴 PUT ↓'}</td>
+        <td>${s.confidence}%</td>
+        <td>${s.expiry}</td>
+        <td style="font-size:12px">${s.pattern||'—'}</td>
+        <td style="color:${resC};font-weight:700">${resE} ${s.result}</td>
+        <td style="color:var(--muted);font-size:12px">${(s.created_at||'').slice(11,19)}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ── Toast ──────────────────────────────────────────────────
+function toast(msg, type = 'blue') {
+  const el = document.getElementById('toast');
+  const colors = { green:'var(--green)', red:'var(--red)',
+                   yellow:'var(--yellow)', blue:'var(--blue)' };
+  el.style.borderColor = colors[type] || colors.blue;
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── Init ───────────────────────────────────────────────────
+connectWS();
+startCountdown();
+loadHistory();
+setTimeout(refreshStats, 500);
+
+// Refresh history every 30s
+setInterval(loadHistory, 30000);
+</script>
+</body>
+</html>
