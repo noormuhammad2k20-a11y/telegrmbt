@@ -1,6 +1,6 @@
 """
 config.py — All Quetex Web settings.
-Assets mapped to yfinance tickers (FREE, reliable data).
+Assets mapped to Twelve Data API symbols (FREE, real-time data).
 """
 import os
 from dotenv import load_dotenv
@@ -19,41 +19,41 @@ DB_PASS         = os.getenv("DB_PASS", "")
 DB_NAME         = os.getenv("DB_NAME", "quetex_signals")
 
 # ─── Signal Settings ─────────────────────────────────────────
-MIN_CONFIDENCE   = float(os.getenv("MIN_CONFIDENCE", 70))
-SCAN_INTERVAL    = int(os.getenv("SCAN_INTERVAL", 5))    # minutes
-COOLDOWN_MIN     = 15    # minutes between signals per asset
+MIN_CONFIDENCE   = float(os.getenv("MIN_CONFIDENCE", 55))
+WEAK_CONFIDENCE  = float(os.getenv("WEAK_CONFIDENCE", 50))   # show weak signals above this
+SCAN_INTERVAL    = int(os.getenv("SCAN_INTERVAL", 1))    # minutes
+COOLDOWN_MIN     = 5     # minutes between signals per asset
 CANDLE_COUNT_1M  = 200   # 1-minute candles to fetch
 CANDLE_COUNT_5M  = 150   # 5-minute candles
 
-# ─── Asset Map: Display Name → yfinance Ticker ───────────────
-# yfinance is FREE, stable, no API key needed
+# ─── Twelve Data API ─────────────────────────────────────────
+TWELVE_DATA_KEY  = os.getenv("TWELVE_DATA_KEY", "")
+
+# ─── Asset Map: Display Name → Twelve Data Symbol ────────────
+# Twelve Data free tier: 8 requests/min, real-time data
 ASSET_MAP = {
-    "EURUSD-OTC": "EURUSD=X",
-    "GBPUSD-OTC": "GBPUSD=X",
-    "USDJPY-OTC": "USDJPY=X",
-    "EURJPY-OTC": "EURJPY=X",
-    "GBPJPY-OTC": "GBPJPY=X",
-    "AUDUSD-OTC": "AUDUSD=X",
-    "USDCHF-OTC": "USDCHF=X",
-    "NZDUSD-OTC": "NZDUSD=X",
-    "AUDCAD-OTC": "AUDCAD=X",
-    "EURGBP-OTC": "EURGBP=X",
-    "BTCUSD":     "BTC-USD",
-    "ETHUSD":     "ETH-USD",
+    "EURUSD": "EUR/USD",
+    "GBPUSD": "GBP/USD",
+    "USDJPY": "USD/JPY",
+    "EURJPY": "EUR/JPY",
+    "BTCUSD": "BTC/USD",
+    "ETHUSD": "ETH/USD",
+    "AUDUSD": "AUD/USD",
+    "USDCHF": "USD/CHF",
 }
 
 ALL_ASSETS = list(ASSET_MAP.keys())
 
 # ─── Timeframe Settings ──────────────────────────────────────
-TF_1M  = "1m"
-TF_5M  = "5m"
-TF_15M = "15m"
+TF_1M  = "1min"
+TF_5M  = "5min"
+TF_15M = "15min"
 
-# yfinance period for each interval
-TF_PERIOD_MAP = {
-    "1m":  ("7d",  "1m"),   # period, interval
-    "5m":  ("60d", "5m"),
-    "15m": ("60d", "15m"),
+# Twelve Data interval names
+TF_TD_MAP = {
+    "1min":  "1min",
+    "5min":  "5min",
+    "15min": "15min",
 }
 
 # Main scan timeframes
@@ -80,14 +80,14 @@ ADX_NORMAL  = 25
 ADX_STRONG  = 35
 
 # ─── Volatility Filter ───────────────────────────────────────
-MIN_ATR_PCT = 0.00015   # skip if ATR < 0.015% of price
+MIN_ATR_PCT = 0.00005   # much lower ATR filter — more signals pass
 
 # ─── MTF Adjustments ─────────────────────────────────────────
 MTF_BOOST   = 8.0    # +8% if higher TF confirms
 MTF_PENALTY = 10.0   # -10% if higher TF opposes
 
 # ─── Market Session Filter (UTC hours) ───────────────────────
-GOOD_HOURS = list(range(7, 22))   # 07:00-22:00 UTC
+GOOD_HOURS = list(range(0, 24))   # ALL hours — scan 24/7
 
 # ─── Indicator Periods ───────────────────────────────────────
 RSI_LEN   = 14

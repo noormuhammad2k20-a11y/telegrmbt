@@ -1,6 +1,7 @@
 """
 signal_engine.py — Signal generation with MTF, session filter, cooldown.
 Scans all assets in parallel. Returns signals sorted by confidence.
+Includes WEAK signal support (50-65% confidence shown with warning).
 """
 import asyncio
 import logging
@@ -32,6 +33,16 @@ def _mark(asset: str, tf: str):
 def _in_session() -> bool:
     h = datetime.now(timezone.utc).hour
     return h in C.GOOD_HOURS
+
+
+def _get_strength_label(confidence: float) -> str:
+    """Return signal strength label based on confidence."""
+    if confidence >= 75:
+        return "STRONG"
+    elif confidence >= 60:
+        return "MEDIUM"
+    else:
+        return "WEAK"
 
 
 _analyzer = TechnicalAnalyzer()
@@ -67,6 +78,7 @@ async def scan_asset(asset: str, tf: str,
     """
     Scan one asset on one timeframe.
     Returns signal dict or None.
+    Now includes WEAK signals (confidence >= WEAK_CONFIDENCE).
     """
     if not force and _on_cooldown(asset, tf):
         return None
@@ -79,7 +91,7 @@ async def scan_asset(asset: str, tf: str,
     if result is None:
         return None
 
-    # Skip low volatility
+    # Skip low volatility (but use much lower threshold now)
     if result.low_vol:
         logger.debug("Skip %s/%s: low volatility", asset, tf)
         return None
@@ -100,12 +112,16 @@ async def scan_asset(asset: str, tf: str,
 
     result.confidence = round(result.confidence, 2)
 
-    # Confidence threshold
-    if result.confidence < C.MIN_CONFIDENCE:
+    # WEAK signal threshold — show signals >= WEAK_CONFIDENCE with warning
+    if result.confidence < C.WEAK_CONFIDENCE:
         return None
 
+    # Determine signal strength label
+    strength = _get_strength_label(result.confidence)
+    is_weak = result.confidence < C.MIN_CONFIDENCE
+
     # Expiry map
-    expiry_map = {"1m": "1 Minute", "5m": "5 Minutes", "15m": "15 Minutes"}
+    expiry_map = {"1min": "1 Minute", "5min": "5 Minutes", "15min": "15 Minutes"}
     expiry = expiry_map.get(tf, tf)
 
     _mark(asset, tf)
@@ -126,11 +142,13 @@ async def scan_asset(asset: str, tf: str,
         "opposing":    result.opposing,
         "mtf_note":    mtf_note,
         "timestamp":   result.timestamp,
+        "strength":    strength,
+        "is_weak":     is_weak,
     }
 
 
 async def scan_all(force: bool = False,
-                   max_results: int = 5) -> list[dict]:
+                   max_results: int = 10) -> list[dict]:
     """Scan all assets × all timeframes in parallel."""
     tasks = [
         scan_asset(a, tf, force)

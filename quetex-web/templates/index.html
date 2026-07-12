@@ -4,94 +4,151 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quetex — Live Signal Dashboard</title>
+<meta name="description" content="Quetex real-time binary options signal dashboard with technical analysis">
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
   :root {
-    --bg:      #0d1117;
-    --bg2:     #161b22;
-    --bg3:     #21262d;
-    --border:  #30363d;
-    --text:    #e6edf3;
-    --muted:   #8b949e;
-    --green:   #3fb950;
-    --red:     #f85149;
-    --yellow:  #d29922;
-    --blue:    #58a6ff;
-    --purple:  #bc8cff;
-    --orange:  #ffa657;
+    --bg:      #0a0e17;
+    --bg2:     #111827;
+    --bg3:     #1e293b;
+    --border:  #334155;
+    --text:    #e2e8f0;
+    --muted:   #94a3b8;
+    --green:   #22c55e;
+    --red:     #ef4444;
+    --yellow:  #eab308;
+    --blue:    #3b82f6;
+    --purple:  #a855f7;
+    --orange:  #f97316;
+    --cyan:    #06b6d4;
+    --glow-green: rgba(34,197,94,.15);
+    --glow-red:   rgba(239,68,68,.15);
+    --glow-yellow: rgba(234,179,8,.12);
+    --glow-blue:  rgba(59,130,246,.15);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text);
-         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
          min-height: 100vh; }
 
   /* ── Header ── */
-  .header { background: var(--bg2); border-bottom: 1px solid var(--border);
-             padding: 12px 20px; display: flex; align-items: center;
-             justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-  .logo { font-size: 20px; font-weight: 700; color: var(--blue);
-          letter-spacing: 2px; }
+  .header { background: linear-gradient(180deg, rgba(17,24,39,.98), rgba(10,14,23,.95));
+             border-bottom: 1px solid var(--border);
+             padding: 14px 24px; display: flex; align-items: center;
+             justify-content: space-between; position: sticky; top: 0; z-index: 100;
+             backdrop-filter: blur(12px); }
+  .logo { font-size: 22px; font-weight: 900; background: linear-gradient(135deg, var(--blue), var(--cyan));
+          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+          letter-spacing: 3px; }
   .status-dot { width: 8px; height: 8px; border-radius: 50%;
                 background: var(--green); display: inline-block;
                 animation: pulse 2s infinite; margin-right: 6px; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
   .status-text { font-size: 13px; color: var(--muted); }
 
+  /* ── Data Freshness Badge ── */
+  .freshness-badge { display: inline-flex; align-items: center; gap: 6px;
+                     padding: 4px 12px; background: rgba(6,182,212,.1);
+                     border: 1px solid rgba(6,182,212,.25); border-radius: 20px;
+                     font-size: 12px; color: var(--cyan); }
+
   /* ── Layout ── */
-  .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+  .container { max-width: 1440px; margin: 0 auto; padding: 20px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
           gap: 16px; }
 
   /* ── Control Bar ── */
   .controls { background: var(--bg2); border: 1px solid var(--border);
-              border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;
+              border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;
               display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer;
-         font-size: 14px; font-weight: 600; transition: all .2s; }
-  .btn-primary { background: var(--blue); color: #000; }
-  .btn-primary:hover { background: #79c0ff; }
-  .btn-success { background: var(--green); color: #000; }
+  .btn { padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer;
+         font-size: 14px; font-weight: 600; transition: all .2s; font-family: 'Inter', sans-serif; }
+  .btn-primary { background: linear-gradient(135deg, var(--blue), #2563eb); color: #fff;
+                 box-shadow: 0 2px 8px rgba(59,130,246,.3); }
+  .btn-primary:hover { box-shadow: 0 4px 16px rgba(59,130,246,.45); transform: translateY(-1px); }
+  .btn-refresh { background: linear-gradient(135deg, var(--cyan), #0891b2); color: #fff;
+                 box-shadow: 0 2px 8px rgba(6,182,212,.3); }
+  .btn-refresh:hover { box-shadow: 0 4px 16px rgba(6,182,212,.45); transform: translateY(-1px); }
+  .btn-success { background: linear-gradient(135deg, var(--green), #16a34a); color: #fff; }
   .btn-success:hover { filter: brightness(1.15); }
   .btn-danger { background: var(--red); color: #fff; }
   .btn-danger:hover { filter: brightness(1.15); }
   .btn-outline { background: transparent; border: 1px solid var(--border);
-                 color: var(--text); }
-  .btn-outline:hover { background: var(--bg3); }
-  .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px;
-           font-weight: 600; }
-  .badge-green { background: rgba(63,185,80,.2); color: var(--green); }
-  .badge-red { background: rgba(248,81,73,.2); color: var(--red); }
-  .badge-yellow { background: rgba(210,153,34,.2); color: var(--yellow); }
+                 color: var(--text); border-radius: 8px; }
+  .btn-outline:hover { background: var(--bg3); border-color: var(--muted); }
+
+  /* ── Badges ── */
+  .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge-green { background: var(--glow-green); color: var(--green); }
+  .badge-red { background: var(--glow-red); color: var(--red); }
+  .badge-yellow { background: var(--glow-yellow); color: var(--yellow); }
+  .badge-blue { background: var(--glow-blue); color: var(--blue); }
 
   /* ── Stats Bar ── */
   .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
                gap: 12px; margin-bottom: 20px; }
   .stat-card { background: var(--bg2); border: 1px solid var(--border);
-               border-radius: 10px; padding: 16px; text-align: center; }
-  .stat-value { font-size: 28px; font-weight: 700; }
-  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+               border-radius: 12px; padding: 18px; text-align: center;
+               transition: transform .2s, box-shadow .2s; }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.3); }
+  .stat-value { font-size: 30px; font-weight: 800; }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+
+  /* ── Data Errors Panel ── */
+  .errors-panel { background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.2);
+                  border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;
+                  display: none; }
+  .errors-panel.show { display: block; animation: fadeIn .3s ease; }
+  .errors-title { font-size: 13px; font-weight: 700; color: var(--red); margin-bottom: 8px; }
+  .error-item { display: flex; justify-content: space-between; align-items: center;
+                padding: 4px 0; font-size: 12px; border-bottom: 1px solid rgba(239,68,68,.1); }
+  .error-item:last-child { border-bottom: none; }
+  .error-asset { color: var(--red); font-weight: 600; }
+  .error-msg { color: var(--muted); max-width: 250px; text-overflow: ellipsis;
+               overflow: hidden; white-space: nowrap; }
 
   /* ── Signal Card ── */
   .signal-card { background: var(--bg2); border: 1px solid var(--border);
-                 border-radius: 12px; overflow: hidden; transition: transform .2s;
+                 border-radius: 14px; overflow: hidden; transition: all .3s;
                  position: relative; }
-  .signal-card:hover { transform: translateY(-2px); }
-  .signal-card.buy  { border-top: 3px solid var(--green); }
-  .signal-card.sell { border-top: 3px solid var(--red); }
+  .signal-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+  .signal-card.buy  { border-top: 3px solid var(--green);
+                      box-shadow: 0 -2px 12px var(--glow-green); }
+  .signal-card.sell { border-top: 3px solid var(--red);
+                      box-shadow: 0 -2px 12px var(--glow-red); }
+  .signal-card.weak { border-top: 3px solid var(--yellow);
+                      box-shadow: 0 -2px 12px var(--glow-yellow); opacity: .85; }
+
+  /* ── Strength Badge ── */
+  .strength-badge { position: absolute; top: 10px; right: 12px; padding: 3px 10px;
+                    border-radius: 6px; font-size: 11px; font-weight: 700;
+                    text-transform: uppercase; letter-spacing: 1px; }
+  .strength-STRONG { background: var(--glow-green); color: var(--green); }
+  .strength-MEDIUM { background: rgba(249,115,22,.15); color: var(--orange); }
+  .strength-WEAK   { background: var(--glow-yellow); color: var(--yellow); }
+
   .card-header { padding: 14px 16px 10px;
                  display: flex; justify-content: space-between; align-items: center; }
-  .asset-name { font-size: 16px; font-weight: 700; }
-  .direction-badge { font-size: 13px; font-weight: 700; padding: 4px 12px;
+  .asset-name { font-size: 16px; font-weight: 800; }
+  .direction-badge { font-size: 13px; font-weight: 700; padding: 4px 14px;
                      border-radius: 20px; }
-  .buy .direction-badge  { background: rgba(63,185,80,.2); color: var(--green); }
-  .sell .direction-badge { background: rgba(248,81,73,.2); color: var(--red); }
+  .buy .direction-badge  { background: var(--glow-green); color: var(--green); }
+  .sell .direction-badge { background: var(--glow-red); color: var(--red); }
+  .weak .direction-badge { background: var(--glow-yellow); color: var(--yellow); }
   .card-body { padding: 0 16px 14px; }
   .card-row { display: flex; justify-content: space-between; margin: 5px 0;
               font-size: 13px; }
   .card-label { color: var(--muted); }
   .card-val { font-weight: 600; }
-  .call-put { font-size: 20px; font-weight: 800; }
+  .call-put { font-size: 20px; font-weight: 900; }
   .buy  .call-put { color: var(--green); }
   .sell .call-put { color: var(--red); }
+  .weak .call-put { color: var(--yellow); }
+
+  /* ── Weak Signal Warning ── */
+  .weak-warning { background: rgba(234,179,8,.08); padding: 8px 12px; margin: 0 16px 8px;
+                  border-radius: 8px; font-size: 11px; color: var(--yellow);
+                  display: flex; align-items: center; gap: 6px; }
 
   /* ── Confidence Bar ── */
   .conf-section { padding: 10px 16px; background: var(--bg3); }
@@ -100,10 +157,12 @@
   .conf-val { font-size: 18px; font-weight: 800; }
   .buy  .conf-val { color: var(--green); }
   .sell .conf-val { color: var(--red); }
+  .weak .conf-val { color: var(--yellow); }
   .bar-track { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
   .bar-fill { height: 100%; border-radius: 3px; transition: width .8s ease; }
-  .buy  .bar-fill { background: linear-gradient(90deg, #238636, #3fb950); }
-  .sell .bar-fill { background: linear-gradient(90deg, #da3633, #f85149); }
+  .buy  .bar-fill { background: linear-gradient(90deg, #15803d, #22c55e); }
+  .sell .bar-fill { background: linear-gradient(90deg, #dc2626, #ef4444); }
+  .weak .bar-fill { background: linear-gradient(90deg, #a16207, #eab308); }
 
   /* ── VS Bar ── */
   .vs-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden;
@@ -129,26 +188,34 @@
 
   /* ── Result buttons ── */
   .result-btns { display: flex; gap: 6px; padding: 10px 16px; }
-  .btn-win  { flex:1; padding:6px; background:rgba(63,185,80,.15);
+  .btn-win  { flex:1; padding:6px; background:rgba(34,197,94,.12);
               color:var(--green); border:1px solid var(--green);
-              border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; }
-  .btn-loss { flex:1; padding:6px; background:rgba(248,81,73,.15);
+              border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;
+              font-family:'Inter',sans-serif; transition: all .2s; }
+  .btn-loss { flex:1; padding:6px; background:rgba(239,68,68,.12);
               color:var(--red); border:1px solid var(--red);
-              border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; }
-  .btn-win:hover  { background:rgba(63,185,80,.3); }
-  .btn-loss:hover { background:rgba(248,81,73,.3); }
+              border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;
+              font-family:'Inter',sans-serif; transition: all .2s; }
+  .btn-win:hover  { background:rgba(34,197,94,.25); }
+  .btn-loss:hover { background:rgba(239,68,68,.25); }
 
   /* ── No signal card ── */
   .no-signal { background: var(--bg2); border: 1px solid var(--border);
-               border-radius: 12px; padding: 40px; text-align: center;
+               border-radius: 14px; padding: 40px; text-align: center;
                color: var(--muted); grid-column: 1/-1; }
   .no-signal-icon { font-size: 48px; margin-bottom: 12px; }
+
+  /* ── Disclaimer Banner ── */
+  .disclaimer { background: rgba(249,115,22,.06); border: 1px solid rgba(249,115,22,.2);
+                border-radius: 10px; padding: 12px 18px; margin-bottom: 20px;
+                font-size: 12px; color: var(--orange); line-height: 1.5; }
+  .disclaimer strong { color: var(--orange); }
 
   /* ── History Table ── */
   .section-title { font-size: 16px; font-weight: 700; margin: 24px 0 12px;
                    color: var(--text); display: flex; align-items: center; gap: 8px; }
   .table-wrap { background: var(--bg2); border: 1px solid var(--border);
-                border-radius: 10px; overflow: hidden; overflow-x: auto; }
+                border-radius: 12px; overflow: hidden; overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   thead { background: var(--bg3); }
   th { padding: 10px 14px; text-align: left; color: var(--muted);
@@ -157,25 +224,29 @@
   tr:hover td { background: var(--bg3); }
 
   /* ── Countdown ── */
-  .countdown { font-size: 13px; color: var(--blue); margin-left: auto; }
+  .countdown { font-size: 13px; color: var(--blue); margin-left: auto; font-weight: 600; }
 
   /* ── Toast ── */
   #toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg3);
-           border: 1px solid var(--border); border-radius: 10px;
+           border: 1px solid var(--border); border-radius: 12px;
            padding: 14px 20px; font-size: 14px; z-index: 999;
-           opacity: 0; transition: opacity .3s; pointer-events: none;
-           max-width: 320px; }
-  #toast.show { opacity: 1; }
+           opacity: 0; transition: opacity .3s, transform .3s;
+           pointer-events: none; max-width: 320px;
+           transform: translateY(10px); backdrop-filter: blur(8px); }
+  #toast.show { opacity: 1; transform: translateY(0); }
 
   /* ── Scanning overlay ── */
   #scanning { display: none; position: fixed; top: 50%; left: 50%;
               transform: translate(-50%, -50%); background: var(--bg2);
-              border: 1px solid var(--border); border-radius: 12px;
-              padding: 32px 48px; text-align: center; z-index: 999; }
+              border: 1px solid var(--border); border-radius: 14px;
+              padding: 32px 48px; text-align: center; z-index: 999;
+              box-shadow: 0 20px 60px rgba(0,0,0,.5); }
   .spinner { width: 36px; height: 36px; border: 3px solid var(--border);
              border-top-color: var(--blue); border-radius: 50%;
              animation: spin 1s linear infinite; margin: 0 auto 16px; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); }
+                      to { opacity: 1; transform: translateY(0); } }
 
   /* ── Responsive ── */
   @media (max-width: 600px) {
@@ -191,6 +262,9 @@
 <div class="header">
   <div class="logo">⚡ QUETEX</div>
   <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div class="freshness-badge" id="freshnessBadge">
+      🕐 Last fetch: <span id="lastFetch">—</span>
+    </div>
     <div>
       <span class="status-dot" id="statusDot"></span>
       <span class="status-text" id="statusText">Connecting...</span>
@@ -202,20 +276,38 @@
 <!-- Main Container -->
 <div class="container">
 
+  <!-- Disclaimer -->
+  <div class="disclaimer">
+    <strong>⚠️ DISCLAIMER:</strong>
+    This system generates signals based on technical indicators only.
+    Signals do NOT directly connect to Quotex platform.
+    Use signals as guidance only — always verify before trading.
+    No system achieves 90%+ accuracy consistently.
+  </div>
+
   <!-- Controls -->
   <div class="controls">
-    <button class="btn btn-primary" onclick="triggerScan()">🔍 Scan All Now</button>
+    <button class="btn btn-primary" id="scanBtn" onclick="triggerScan()">🔍 Scan All Now</button>
+    <button class="btn btn-refresh" id="refreshBtn" onclick="triggerScan()">🔄 REFRESH</button>
     <button class="btn btn-outline" onclick="toggleAuto()" id="autoBtn">⏸ Pause Auto</button>
     <select id="assetSelect" style="padding:8px 12px;background:var(--bg3);color:var(--text);
-            border:1px solid var(--border);border-radius:6px;font-size:14px;">
+            border:1px solid var(--border);border-radius:8px;font-size:14px;
+            font-family:'Inter',sans-serif;">
       <option value="">— Quick Scan: Select Asset —</option>
       {% for a in assets %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
     </select>
     <button class="btn btn-outline" onclick="scanAsset()">▶ Scan Selected</button>
     <div style="margin-left:auto;font-size:12px;color:var(--muted)">
       Min Confidence: <strong style="color:var(--blue)">{{ min_conf }}%</strong>
-      &nbsp;|&nbsp;Auto: <strong style="color:var(--blue)">{{ interval }}min</strong>
+      &nbsp;|&nbsp;Weak: <strong style="color:var(--yellow)">{{ weak_conf }}%+</strong>
+      &nbsp;|&nbsp;Auto: <strong style="color:var(--cyan)">{{ interval }}min</strong>
     </div>
+  </div>
+
+  <!-- Data Errors Panel -->
+  <div class="errors-panel" id="errorsPanel">
+    <div class="errors-title">⚠️ Data Fetch Errors</div>
+    <div id="errorsBody"></div>
   </div>
 
   <!-- Stats Bar -->
@@ -259,12 +351,12 @@
       <thead>
         <tr>
           <th>#</th><th>Asset</th><th>Direction</th>
-          <th>Confidence</th><th>Expiry</th><th>Pattern</th>
+          <th>Confidence</th><th>Strength</th><th>Expiry</th><th>Pattern</th>
           <th>Result</th><th>Time</th>
         </tr>
       </thead>
       <tbody id="historyBody">
-        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">
+        <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">
           Loading history...</td></tr>
       </tbody>
     </table>
@@ -311,6 +403,8 @@ function connectWS() {
       renderSignals(msg.signals);
       resetCountdown();
       refreshStats();
+      if (msg.data_errors) renderErrors(msg.data_errors);
+      if (msg.last_fetch) updateFetchTime(msg.last_fetch);
     }
   };
 
@@ -324,6 +418,28 @@ function connectWS() {
 function setStatus(ok) {
   document.getElementById('statusDot').style.background = ok ? 'var(--green)' : 'var(--red)';
   document.getElementById('statusText').textContent = ok ? 'Live — Auto-scan active' : 'Reconnecting...';
+}
+
+function updateFetchTime(t) {
+  document.getElementById('lastFetch').textContent = t;
+}
+
+// ── Errors Panel ──────────────────────────────────────────
+function renderErrors(errors) {
+  const panel = document.getElementById('errorsPanel');
+  const body = document.getElementById('errorsBody');
+  const keys = Object.keys(errors);
+  if (keys.length === 0) {
+    panel.classList.remove('show');
+    return;
+  }
+  panel.classList.add('show');
+  body.innerHTML = keys.map(asset =>
+    `<div class="error-item">
+       <span class="error-asset">🔴 ${asset}</span>
+       <span class="error-msg">${errors[asset]}</span>
+     </div>`
+  ).join('');
 }
 
 // ── Countdown ──────────────────────────────────────────────
@@ -378,7 +494,7 @@ function renderSignals(signals) {
     grid.innerHTML = `
       <div class="no-signal">
         <div class="no-signal-icon">⚪</div>
-        <div>No strong signals found at this time.</div>
+        <div>No signals found at this time.</div>
         <div style="margin-top:8px;font-size:13px">Markets may be in consolidation. Try again shortly.</div>
       </div>`;
     return;
@@ -388,16 +504,18 @@ function renderSignals(signals) {
 
 function buildCard(s) {
   const isBuy   = s.direction === 'BUY';
-  const cls     = isBuy ? 'buy' : 'sell';
-  const icon    = isBuy ? '🟢' : '🔴';
+  const isWeak  = s.is_weak || false;
+  const cls     = isWeak ? 'weak' : (isBuy ? 'buy' : 'sell');
+  const icon    = isWeak ? '🟡' : (isBuy ? '🟢' : '🔴');
   const cpLabel = isBuy ? 'CALL ↑' : 'PUT ↓';
   const confInt = Math.round(s.confidence);
-  const confColor = confInt >= 90 ? 'var(--green)' : confInt >= 80 ? 'var(--orange)' : 'var(--yellow)';
+  const strength = s.strength || (confInt >= 75 ? 'STRONG' : confInt >= 60 ? 'MEDIUM' : 'WEAK');
+
   const bp = s.buy_pct || 0; const sp = s.sell_pct || 0;
   const total = (bp + sp) || 1;
 
   const indHTML = (s.confirming || []).map(i =>
-    `<div class="ind-row"><div class="ind-dot ${cls}"></div><span>${i}</span></div>`
+    `<div class="ind-row"><div class="ind-dot ${isBuy?'buy':'sell'}"></div><span>${i}</span></div>`
   ).join('') + (s.opposing || []).map(i =>
     `<div class="ind-row"><div class="ind-dot ${isBuy ? 'sell' : 'buy'}"></div>
      <span style="color:var(--muted)">${i}</span></div>`
@@ -405,8 +523,14 @@ function buildCard(s) {
 
   const sid = s.id || '';
 
+  const weakWarnHTML = isWeak ? `
+    <div class="weak-warning">
+      ⚠️ WEAK signal — use with caution, verify before trading
+    </div>` : '';
+
   return `
   <div class="signal-card ${cls}" id="card_${sid}">
+    <div class="strength-badge strength-${strength}">${strength}</div>
     <div class="card-header">
       <div>
         <div class="asset-name">${icon} ${s.asset}</div>
@@ -414,6 +538,7 @@ function buildCard(s) {
       </div>
       <div class="direction-badge">${s.direction}</div>
     </div>
+    ${weakWarnHTML}
     <div class="card-body">
       <div class="call-put">${cpLabel}</div>
       <div class="card-row" style="margin-top:8px">
@@ -437,7 +562,7 @@ function buildCard(s) {
     <div class="conf-section">
       <div class="conf-label">
         <span>Confidence</span>
-        <span class="conf-val" style="color:${confColor}">${confInt}%</span>
+        <span class="conf-val">${confInt}%</span>
       </div>
       <div class="bar-track">
         <div class="bar-fill" style="width:${confInt}%"></div>
@@ -494,6 +619,8 @@ async function refreshStats() {
     document.getElementById('stat-losses').textContent  = st.losses;
     document.getElementById('stat-wr').textContent      = st.win_rate + '%';
     document.getElementById('stat-total').textContent   = st.total;
+    if (d.data_errors) renderErrors(d.data_errors);
+    if (d.last_fetch) updateFetchTime(d.last_fetch);
   } catch(e) {}
 }
 
@@ -503,19 +630,23 @@ async function loadHistory() {
     const d = await r.json();
     const tbody = document.getElementById('historyBody');
     if (!d.signals || d.signals.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No history yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">No history yet</td></tr>';
       return;
     }
     tbody.innerHTML = d.signals.map(s => {
       const isBuy = s.direction === 'BUY';
       const resC  = s.result==='WIN'?'var(--green)':s.result==='LOSS'?'var(--red)':'var(--muted)';
       const resE  = s.result==='WIN'?'✅':s.result==='LOSS'?'❌':'⏳';
+      const conf  = s.confidence || 0;
+      const str   = conf >= 75 ? 'STRONG' : conf >= 60 ? 'MEDIUM' : 'WEAK';
+      const strC  = str==='STRONG'?'var(--green)':str==='MEDIUM'?'var(--orange)':'var(--yellow)';
       return `<tr>
         <td style="color:var(--muted)">#${s.id}</td>
         <td><strong>${s.asset}</strong></td>
         <td style="color:${isBuy?'var(--green)':'var(--red)'};font-weight:700">
           ${isBuy?'🟢 CALL ↑':'🔴 PUT ↓'}</td>
         <td>${s.confidence}%</td>
+        <td style="color:${strC};font-weight:700;font-size:11px">${str}</td>
         <td>${s.expiry}</td>
         <td style="font-size:12px">${s.pattern||'—'}</td>
         <td style="color:${resC};font-weight:700">${resE} ${s.result}</td>

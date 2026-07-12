@@ -20,7 +20,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import config as C
 import database as db
 from signal_engine import scan_all, scan_one
-from data_client import get_price
+from data_client import get_price, get_data_errors, get_last_fetch_time
 
 logging.basicConfig(
     level=logging.INFO,
@@ -58,7 +58,7 @@ async def _do_scan():
     last_scan_ts = datetime.now(timezone.utc).strftime("%H:%M:%S UTC")
     await _broadcast({"type": "scan_start", "ts": last_scan_ts})
 
-    signals = await scan_all(force=False, max_results=6)
+    signals = await scan_all(force=False, max_results=10)
     latest_signals = signals
 
     for s in signals:
@@ -75,6 +75,8 @@ async def _do_scan():
         "type":    "signals",
         "signals": signals,
         "ts":      last_scan_ts,
+        "data_errors": get_data_errors(),
+        "last_fetch": get_last_fetch_time(),
     })
     logger.info("Scan complete: %d signals found", len(signals))
 
@@ -112,17 +114,18 @@ async def dashboard(request: Request):
         "assets":  C.ALL_ASSETS,
         "interval": C.SCAN_INTERVAL,
         "min_conf": C.MIN_CONFIDENCE,
-        "version": "2.0",
+        "weak_conf": C.WEAK_CONFIDENCE,
+        "version": "3.0",
     })
 
 
 @app.get("/api/scan")
 async def api_scan(asset: Optional[str] = None):
-    """Trigger manual scan. ?asset=EURUSD-OTC to scan one asset."""
+    """Trigger manual scan. ?asset=EURUSD to scan one asset."""
     if asset:
         signals = await scan_one(asset.upper())
     else:
-        signals = await scan_all(force=True, max_results=6)
+        signals = await scan_all(force=True, max_results=10)
     # Save to DB
     for s in signals:
         sid = db.save(
@@ -132,7 +135,9 @@ async def api_scan(asset: Optional[str] = None):
         )
         s["id"] = sid
     await _broadcast({"type": "signals", "signals": signals,
-                      "ts": datetime.now(timezone.utc).strftime("%H:%M:%S UTC")})
+                      "ts": datetime.now(timezone.utc).strftime("%H:%M:%S UTC"),
+                      "data_errors": get_data_errors(),
+                      "last_fetch": get_last_fetch_time()})
     return JSONResponse({"success": True, "count": len(signals), "signals": signals})
 
 
@@ -156,6 +161,17 @@ async def api_stats():
         "best": db.get_best_assets(5),
         "last_scan": last_scan_ts,
         "auto_scan": auto_scan_on,
+        "data_errors": get_data_errors(),
+        "last_fetch": get_last_fetch_time(),
+    })
+
+
+@app.get("/api/errors")
+async def api_errors():
+    """Return current data fetch errors per asset."""
+    return JSONResponse({
+        "errors": get_data_errors(),
+        "last_fetch": get_last_fetch_time(),
     })
 
 
@@ -194,7 +210,9 @@ async def websocket_endpoint(ws: WebSocket):
         # Send current signals immediately
         if latest_signals:
             await ws.send_json({"type": "signals", "signals": latest_signals,
-                                "ts": last_scan_ts})
+                                "ts": last_scan_ts,
+                                "data_errors": get_data_errors(),
+                                "last_fetch": get_last_fetch_time()})
         while True:
             # Keep alive — wait for ping from client
             data = await asyncio.wait_for(ws.receive_text(), timeout=60)
